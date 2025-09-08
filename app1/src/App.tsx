@@ -50,6 +50,96 @@ function App() {
     }
   };
 
+  // Initialize Testcompany content in knowledge base
+  const initializeTestcompanyContent = async () => {
+    if (!ragService) return;
+    
+    const kb = ragService.getKnowledgeBase();
+    const existingDocs = kb.getAllDocuments();
+    
+    // Check if Testcompany content already exists
+    const hasTestcompanyContent = existingDocs.some(doc => 
+      doc.title.includes('Testcompany')
+    );
+    
+    if (!hasTestcompanyContent) {
+      // Add all Testcompany information to knowledge base
+      const testcompanyDocs = [
+        {
+          title: 'Testcompany - Übersicht und Geschäftsbeschreibung',
+          content: `Testcompany ist ein zukunftsorientierter Anbieter von Workspace-Lösungen und Innenarchitektur-Konzepten. 
+          Seit der Gründung im Jahr 2010 konzentriert sich das Unternehmen darauf, Umgebungen zu schaffen, die Funktionalität, 
+          Ästhetik und emotionale Wirkung vereinen. Wir glauben, dass jeder Raum eine Geschichte erzählt. 
+          Unsere Mission ist es, Umgebungen zu gestalten, die inspirieren, die Produktivität unterstützen und die Identität 
+          derjenigen widerspiegeln, die sie nutzen.`
+        },
+        {
+          title: 'Testcompany - Öffnungszeiten',
+          content: `Die Öffnungszeiten von Testcompany sind:
+          Montag bis Freitag: 09:00 – 18:00 Uhr
+          Samstag: 10:00 – 14:00 Uhr
+          Sonntag: Geschlossen
+          An Feiertagen: Sonderöffnungszeiten auf Anfrage`
+        },
+        {
+          title: 'Testcompany - Kontaktinformationen',
+          content: `Kontaktdaten von Testcompany:
+          Adresse: Teststr. 1, 12345 Test, Deutschland
+          Telefon: +49 (0)123 456789
+          E-Mail: info@testcompany.com
+          Website: www.testcompany.com
+          Das Büro ist zentral gelegen und gut mit öffentlichen Verkehrsmitteln erreichbar. 
+          Parkplätze sind in der Tiefgarage des Gebäudes vorhanden, Einfahrt über die Samplestraße.`
+        },
+        {
+          title: 'Testcompany - Kerndienstleistungen',
+          content: `Testcompany bietet folgende Kerndienstleistungen an:
+          1. Innenarchitektur und Raumplanung - Professionelle Gestaltung von Arbeits- und Wohnräumen
+          2. Maßgeschneidertes Möbeldesign - Individuelle Möbellösungen nach Kundenwunsch
+          3. Projektmanagement und Bauüberwachung - Komplette Betreuung von Bauprojekten
+          4. Lichtdesign und Akustikoptimierung - Optimale Beleuchtung und Raumakustik für produktive Umgebungen`
+        },
+        {
+          title: 'Testcompany - Team und Philosophie',
+          content: `Das multidisziplinäre Team von Testcompany umfasst Architekten, Designer, Ingenieure und Handwerker. 
+          Gemeinsam verwandeln wir Ideen in greifbare, bewohnbare Räume. Unsere Unternehmensphilosophie: 
+          Wir glauben, dass jeder Raum eine Geschichte erzählt. Unsere Mission ist es, Umgebungen zu gestalten, 
+          die inspirieren, die Produktivität unterstützen und die Identität derjenigen widerspiegeln, die sie nutzen.`
+        },
+        {
+          title: 'Testcompany - Kundenbewertungen',
+          content: `Kundenstimme von Max R. aus Hamburg: "Die Zusammenarbeit mit Testcompany war ein Wendepunkt. 
+          Ihre Liebe zum Detail und ihr kreativer Ansatz haben unser Büro in einen Ort verwandelt, an dem die Menschen 
+          gerne arbeiten." Testcompany hat zahlreiche zufriedene Kunden in ganz Deutschland.`
+        },
+        {
+          title: 'Testcompany - Nachhaltigkeit',
+          content: `Testcompany legt großen Wert auf Nachhaltigkeit. Wir priorisieren umweltfreundliche Materialien, 
+          energieeffiziente Systeme und lokale Partnerschaften. Nachhaltigkeit ist für uns kein Trend, 
+          sondern eine Verantwortung. Alle unsere Projekte werden unter Berücksichtigung ökologischer Aspekte geplant und umgesetzt.`
+        },
+        {
+          title: 'Testcompany - FAQ',
+          content: `Häufig gestellte Fragen zu Testcompany:
+          Frage: Arbeiten Sie auch mit Privatkunden?
+          Antwort: Ja, wir bieten Dienstleistungen sowohl für gewerbliche als auch für private Projekte an.
+          
+          Frage: Kann ich online einen Termin buchen?
+          Antwort: Auf jeden Fall – besuchen Sie einfach unsere Website und nutzen Sie das Buchungstool.`
+        }
+      ];
+      
+      // Add each document to knowledge base
+      for (const doc of testcompanyDocs) {
+        try {
+          await kb.addDocument(doc.title, doc.content, { source: 'manual' as const });
+        } catch (error) {
+          console.error('Error adding Testcompany content:', error);
+        }
+      }
+    }
+  };
+
   // Test connection and initialize
   useEffect(() => {
     const testConnection = async () => {
@@ -68,13 +158,18 @@ function App() {
         
         if (testResult.response) {
           setConnectionStatus('connected');
+          
+          // Initialize Testcompany content
+          await initializeTestcompanyContent();
+          
+          // Load knowledge base after initialization
           loadKnowledgeBase();
           
           // Add welcome message
           const welcomeMessage: ChatMessage = {
             id: Date.now().toString(),
             role: 'assistant',
-            content: 'Hi! I\'m your AI assistant with RAG capabilities. I can answer questions based on my knowledge and any documents you\'ve added to the knowledge base. How can I help you today?',
+            content: 'Hallo! Ich bin Ihr AI-Assistent mit umfangreichen Informationen über Testcompany. Ich kann Ihnen bei Fragen zu unseren Öffnungszeiten (Mo-Fr: 09:00-18:00, Sa: 10:00-14:00), Dienstleistungen, Kontaktdaten und vielem mehr helfen. Wie kann ich Ihnen heute helfen?',
             timestamp: new Date()
           };
           setMessages([welcomeMessage]);
