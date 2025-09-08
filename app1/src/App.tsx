@@ -212,6 +212,81 @@ function App() {
         <strong>Status:</strong> {status.text}
       </p>
       
+      {/* Company Information Section - NEW */}
+      <div className="company-info-section">
+        <h2>Testcompany</h2>
+        
+        <div className="info-block">
+          <h3>Business Description</h3>
+          <p>Testcompany is a forward-thinking provider of workspace solutions and interior design concepts. Since its founding in 2010, the company has focused on creating environments that combine functionality, aesthetics, and emotional impact.</p>
+        </div>
+
+        <div className="info-block">
+          <h3>Opening Hours</h3>
+          <p>Monday to Friday: 09:00 – 18:00</p>
+          <p>Saturday: 10:00 – 14:00</p>
+          <p>Sunday: Closed</p>
+          <p>Public Holidays: Special hours upon request</p>
+        </div>
+
+        <div className="info-block">
+          <h3>Contact Information</h3>
+          <p>📍 Address: Teststr. 1, 12345 Test, Germany</p>
+          <p>📞 Phone: +49 (0)123 456789</p>
+          <p>📧 Email: info@testcompany.com</p>
+          <p>🌐 Website: www.testcompany.com</p>
+        </div>
+
+        <div className="info-block">
+          <h3>Core Services</h3>
+          <ul>
+            <li>Interior architecture & space planning</li>
+            <li>Custom furniture design</li>
+            <li>Project management & construction oversight</li>
+            <li>Lighting design & acoustic optimization</li>
+          </ul>
+        </div>
+
+        <div className="info-block">
+          <h3>Company Philosophy</h3>
+          <p>We believe that every space tells a story. Our mission is to design environments that inspire, support productivity, and reflect the identity of those who use them.</p>
+        </div>
+
+        <div className="info-block">
+          <h3>Team Overview</h3>
+          <p>Our multidisciplinary team includes architects, designers, engineers, and craftspeople. Together, we turn ideas into tangible, livable spaces.</p>
+        </div>
+
+        <div className="info-block">
+          <h3>Client Testimonials</h3>
+          <blockquote>
+            "Working with Testcompany was a game-changer. Their attention to detail and creative approach transformed our office into a place people love to be." – Max R., Hamburg
+          </blockquote>
+        </div>
+
+        <div className="info-block">
+          <h3>Sustainability Commitment</h3>
+          <p>We prioritize eco-friendly materials, energy-efficient systems, and local partnerships. Sustainability is not a trend for us—it's a responsibility.</p>
+        </div>
+
+        <div className="info-block">
+          <h3>Directions & Parking</h3>
+          <p>Our office is centrally located and easily accessible via public transport. Parking is available in the building's underground garage, entrance via Samplestraße.</p>
+        </div>
+
+        <div className="info-block">
+          <h3>Frequently Asked Questions</h3>
+          <div className="faq-item">
+            <p><strong>Q: Do you work with private clients?</strong></p>
+            <p>A: Yes, we offer services for both commercial and residential projects.</p>
+          </div>
+          <div className="faq-item">
+            <p><strong>Q: Can I book an appointment online?</strong></p>
+            <p>A: Absolutely—just visit our website and use the booking tool.</p>
+          </div>
+        </div>
+      </div>
+      
       {connectionStatus === 'no-key' && (
         <div className="setup-warning">
           <h3>Setup Required:</h3>
@@ -232,18 +307,16 @@ function App() {
           >
             {isChatVisible ? 'Hide Chat' : 'Open Chat'}
           </button>
-          
           <button
             onClick={() => setIsKnowledgeVisible(!isKnowledgeVisible)}
-            className="chat-toggle-btn"
-            style={{ marginLeft: '10px' }}
+            className="knowledge-toggle-btn"
           >
             {isKnowledgeVisible ? 'Hide Knowledge Base' : 'Manage Knowledge Base'}
           </button>
         </div>
       )}
 
-      {/* Knowledge Base Management */}
+      {/* Knowledge Management Section */}
       {connectionStatus === 'connected' && isKnowledgeVisible && (
         <div className="knowledge-management">
           <h3>Knowledge Base Management</h3>
@@ -254,9 +327,9 @@ function App() {
             <div className="website-input-group">
               <input
                 type="url"
-                placeholder="Enter website URL..."
                 value={newWebsiteUrl}
                 onChange={(e) => setNewWebsiteUrl(e.target.value)}
+                placeholder="Enter website URL (e.g., https://example.com)"
                 className="website-input"
                 disabled={isAddingContent}
               />
@@ -272,7 +345,7 @@ function App() {
 
           {/* Add File Content */}
           <div className="add-content-section">
-            <h4>Upload File</h4>
+            <h4>Upload Document</h4>
             <input
               ref={fileInputRef}
               type="file"
