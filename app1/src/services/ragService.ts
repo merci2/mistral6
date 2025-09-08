@@ -31,18 +31,17 @@ export interface ChatMessage {
 
 // Simple embedding service using text similarity (production: use proper embeddings)
 class SimpleEmbeddingService {
-  // Simple keyword-based similarity for demo (replace with real embeddings later)
   calculateSimilarity(query: string, document: Document): number {
     const queryWords = this.tokenize(query.toLowerCase());
     const docWords = this.tokenize(document.content.toLowerCase());
-    
+
     let matches = 0;
     queryWords.forEach(word => {
       if (docWords.includes(word)) {
         matches++;
       }
     });
-    
+
     return queryWords.length > 0 ? matches / queryWords.length : 0;
   }
 
@@ -56,26 +55,26 @@ class SimpleEmbeddingService {
   searchRelevantChunk(query: string, content: string): string {
     const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const queryWords = this.tokenize(query.toLowerCase());
-    
+
     let bestSentence = '';
     let bestScore = 0;
-    
+
     sentences.forEach(sentence => {
       const sentenceWords = this.tokenize(sentence.toLowerCase());
       let score = 0;
-      
+
       queryWords.forEach(word => {
         if (sentenceWords.some(sw => sw.includes(word) || word.includes(sw))) {
           score++;
         }
       });
-      
+
       if (score > bestScore) {
         bestScore = score;
         bestSentence = sentence.trim();
       }
     });
-    
+
     return bestSentence || content.substring(0, 200) + '...';
   }
 }
@@ -92,7 +91,6 @@ export class KnowledgeBaseService {
   }
 
   private initializeDefaultKnowledge() {
-    // Add some default knowledge about common topics
     if (this.documents.length === 0) {
       this.addDocument(
         'Mistral AI Information',
@@ -125,7 +123,7 @@ export class KnowledgeBaseService {
 
   async addDocument(title: string, content: string, metadata: Partial<Document['metadata']>): Promise<string> {
     const id = this.generateId();
-    
+
     const document: Document = {
       id,
       title,
@@ -151,10 +149,10 @@ export class KnowledgeBaseService {
 
   async search(query: string, topK = 3): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
-    
+
     this.documents.forEach(doc => {
       const similarity = this.embeddingService.calculateSimilarity(query, doc);
-      if (similarity > 0.1) { // Minimum threshold
+      if (similarity > 0.1) {
         const relevantChunk = this.embeddingService.searchRelevantChunk(query, doc.content);
         results.push({
           document: doc,
@@ -206,8 +204,13 @@ export class KnowledgeBaseService {
     try {
       const data = localStorage.getItem('mistral_knowledge_base');
       if (data) {
-        const parsed = JSON.parse(data);
-        this.documents = parsed.map((doc: Document) => ({
+        const parsed = JSON.parse(data) as Array<
+          Omit<Document, 'metadata'> & {
+            metadata: Omit<Document['metadata'], 'createdAt'> & { createdAt: string }
+          }
+        >;
+
+        this.documents = parsed.map((doc) => ({
           ...doc,
           metadata: {
             ...doc.metadata,
@@ -237,20 +240,18 @@ export class RAGChatService {
   }
 
   async chatWithRAG(
-    userQuery: string, 
+    userQuery: string,
     conversationHistory: ChatMessage[] = []
   ): Promise<{
     response: string;
     sources: Document[];
   }> {
     try {
-      // 1. Search for relevant documents
       const searchResults = await this.knowledgeBase.search(userQuery, 3);
-      
-      // 2. Create context from retrieved documents
+
       let context = '';
       const sources: Document[] = [];
-      
+
       if (searchResults.length > 0) {
         context = searchResults
           .map((result, index) => {
@@ -260,21 +261,17 @@ export class RAGChatService {
           .join('\n\n');
       }
 
-      // 3. Create enhanced prompt
       const systemPrompt = `Du bist ein hilfreicher AI-Assistent. ${context ? 
-        `Nutze die folgenden Informationen aus der Knowledge-Base, um präzise Antworten zu geben:\n\n${context}\n\nAnweisungen:` : 'Anweisungen:'
-      }
+        `Nutze die folgenden Informationen aus der Knowledge-Base, um präzise Antworten zu geben:\n\n${context}\n\nAnweisungen:` : 'Anweisungen:'}
 - Beantworte Fragen basierend auf deinem Wissen${context ? ' und den bereitgestellten Informationen' : ''}
 - Wenn du Informationen aus der Knowledge-Base verwendest, erwähne die entsprechende Quelle
 - Sei präzise, hilfreich und höflich
 - Wenn du dir bei etwas unsicher bist, sage das ehrlich`;
 
-      // 4. Prepare conversation messages
       const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
         { role: 'system', content: systemPrompt }
       ];
 
-      // Add recent conversation history (last 6 messages to stay within token limits)
       const recentHistory = conversationHistory.slice(-6);
       recentHistory.forEach(msg => {
         messages.push({
@@ -283,10 +280,8 @@ export class RAGChatService {
         });
       });
 
-      // Add current user query
       messages.push({ role: 'user', content: userQuery });
 
-      // 5. Get Mistral response
       const response = await this.mistralClient.chat.complete({
         model: 'mistral-small',
         messages,
@@ -294,9 +289,8 @@ export class RAGChatService {
         temperature: 0.7,
       });
 
-      // FIX: Proper type handling for Mistral API response
       let assistantResponse: string;
-      
+
       if (response.choices && response.choices.length > 0) {
         const choice = response.choices[0];
         if (choice.message && typeof choice.message.content === 'string') {
@@ -322,18 +316,14 @@ export class RAGChatService {
     }
   }
 
-  // Method to add website content
   async addWebsiteContent(url: string): Promise<string> {
     try {
-      // Simple website content extraction (in production, use proper scraping)
       const response = await fetch(url);
       const html = await response.text();
-      
-      // Extract title
+
       const titleMatch = html.match(/<title>(.*?)<\/title>/i);
       const title = titleMatch ? titleMatch[1].trim() : url;
-      
-      // Simple content extraction (remove HTML tags)
+
       const content = html
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
@@ -352,25 +342,28 @@ export class RAGChatService {
     }
   }
 
-  // Method to add file content
   async addFileContent(file: File): Promise<string> {
     try {
       let content = '';
-      
-      if (file.type === 'text/plain') {
+
+      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
         content = await file.text();
-      } else if (file.type === 'application/json') {
+      } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
         const json = JSON.parse(await file.text());
         content = JSON.stringify(json, null, 2);
-      } else if (file.type === 'application/pdf') {
-        // Basic PDF handling - in production use a proper PDF parser
+      } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
         content = await this.extractPDFContent(file);
-      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-                 file.type === 'application/msword') {
-        // Basic Word document handling
+      } else if (
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+        file.type === 'application/msword' ||
+        file.name.endsWith('.docx') ||
+        file.name.endsWith('.doc')
+      ) {
         content = await this.extractWordContent(file);
+      } else if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
+        content = await file.text();
       } else {
-        throw new Error(`Unsupported file type: ${file.type}. Supported formats: .txt, .json, .pdf, .doc, .docx`);
+        throw new Error(`Unsupported file type: ${file.type}. Supported formats: .txt, .json, .pdf, .doc, .docx, .md`);
       }
 
       return await this.knowledgeBase.addDocument(
@@ -378,7 +371,7 @@ export class RAGChatService {
         content,
         {
           source: 'upload',
-          fileType: file.type
+          fileType: file.type || file.name.split('.').pop() || 'unknown'
         }
       );
     } catch (error) {
@@ -387,30 +380,54 @@ export class RAGChatService {
     }
   }
 
-  // Basic PDF content extraction
   private async extractPDFContent(file: File): Promise<string> {
     try {
-      // This is a basic implementation
-      // In production, you should use a library like pdf-parse or PDF.js
+      const pdfjsLib = await import('pdfjs-dist').catch(() => null);
+
+      if (pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        let fullText = '';
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+
+          const pageText = (textContent.items as Array<{ str: string; [key: string]: unknown }>)
+            .filter((item): item is { str: string } => 'str' in item && typeof item.str === 'string' && item.str.length > 0)
+            .map((item) => item.str)
+            .join(' ');
+
+          fullText += pageText + '\n';
+        }
+
+        fullText = fullText.replace(/\s+/g, ' ').replace(/\n+/g, '\n').trim();
+
+        if (fullText.length > 50) {
+          return fullText;
+        }
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      
-      // Simple text extraction attempt (very basic)
+
       let text = '';
       for (let i = 0; i < uint8Array.length; i++) {
         const char = String.fromCharCode(uint8Array[i]);
-        if (char.match(/[a-zA-Z0-9\s.,!?;:()\-'"]/)) {
+        if (char.match(/[a-zA-Z0-9\s.,!?;:()\-'"äöüÄÖÜß]/)) {
           text += char;
         }
       }
-      
-      // Clean up the extracted text
+
       text = text.replace(/\s+/g, ' ').trim();
-      
+
       if (text.length < 50) {
-        return `PDF file: ${file.name}\n\nNote: This is a complex PDF file. Basic text extraction returned limited content. For better results, consider converting the PDF to text format first.\n\nExtracted text: ${text}`;
+        return `PDF file: ${file.name}\n\nNote: This PDF contains complex formatting or is image-based. Basic text extraction returned limited content. Consider using OCR tools or converting to text format for better results.\n\nExtracted fragments: ${text.substring(0, 200)}...`;
       }
-      
+
       return text;
     } catch (error) {
       console.error('PDF extraction error:', error);
@@ -418,41 +435,56 @@ export class RAGChatService {
     }
   }
 
-  // Basic Word document content extraction
   private async extractWordContent(file: File): Promise<string> {
     try {
-      // This is a very basic implementation
-      // In production, you should use a library like mammoth.js
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      
-      // For .docx files, try to find text content
-      if (file.name.endsWith('.docx')) {
-        // Very basic approach - look for readable text
-        let text = '';
+      const mammoth = await import('mammoth').catch(() => null);
 
-        
-        for (let i = 0; i < uint8Array.length - 3; i++) {
-          // Look for text patterns in XML structure
+      if (mammoth) {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+
+        if (result.value && result.value.trim().length > 0) {
+          return result.value.trim();
+        }
+      }
+
+      if (file.name.endsWith('.docx')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        let text = '';
+        let inTextNode = false;
+
+        for (let i = 0; i < uint8Array.length - 10; i++) {
           const char = String.fromCharCode(uint8Array[i]);
-          if (char.match(/[a-zA-Z0-9\s.,!?;:()\-'"]/)) {
+
+          if (char === '<') {
+            const nextChars = String.fromCharCode(...uint8Array.slice(i, i + 5));
+            if (nextChars.includes('w:t')) {
+              inTextNode = true;
+              i += 10;
+              continue;
+            } else if (nextChars.includes('</')) {
+              inTextNode = false;
+              i += 5;
+              continue;
+            }
+          }
+
+          if (inTextNode && char.match(/[a-zA-Z0-9\s.,!?;:()\-'"äöüÄÖÜß]/)) {
             text += char;
-          } else if (char === '<') {
-            text += ' ';
           }
         }
-        
-        // Clean up the extracted text
+
         text = text.replace(/\s+/g, ' ').trim();
-        
+
         if (text.length < 50) {
-          return `Word document: ${file.name}\n\nNote: This Word document contains complex formatting. Basic text extraction returned limited content. For better results, consider saving the document as a plain text file.\n\nExtracted text: ${text}`;
+          return `Word document: ${file.name}\n\nNote: This Word document contains complex formatting. Basic text extraction returned limited content. For better results, consider saving the document as plain text.\n\nExtracted fragments: ${text.substring(0, 200)}...`;
         }
-        
+
         return text;
       } else {
-        // For older .doc files
-        return `Word document: ${file.name}\n\nNote: Legacy .doc files require specialized parsing. Please save the document as .docx or .txt format for better text extraction.`;
+        return `Word document: ${file.name}\n\nNote: This appears to be a legacy .doc file. For better text extraction, please save the document as .docx or .txt format.`;
       }
     } catch (error) {
       console.error('Word extraction error:', error);
